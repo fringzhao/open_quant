@@ -4,6 +4,7 @@ Version: 0.1.0
 Summary: 量化因子研究核心库
 Requires-Python: >=3.12
 Description-Content-Type: text/markdown
+License-File: LICENSE
 Requires-Dist: pandas>=2.3.3
 Requires-Dist: numpy>=2.3.3
 Requires-Dist: joblib>=1.5.3
@@ -12,11 +13,24 @@ Requires-Dist: duckdb>=1.5.0
 Requires-Dist: tqdm>=4.67.3
 Requires-Dist: tushare>=1.4.25
 Requires-Dist: scipy>=1.16.3
+Requires-Dist: TA-Lib>=0.6.8
+Requires-Dist: scikit-learn>=1.8.0
+Requires-Dist: torch<=2.8.0,>=2.0.0
+Requires-Dist: tensorboard>=2.15.0
+Dynamic: license-file
 
-# quant_infra — 量化基础框架
+# open_quant — 量化基础框架
 
----
+
+## Star History
+
+[![Star History Chart](https://api.star-history.com/chart?repos=ShenzhenLime/open_quant&type=date&legend=top-left&sealed_token=fUmmcQA60uDDuav0Vj66OzZoJkv4eZeI9QgmDY1LbS7lIHtneyP2qhSSmSFw_c8T6u1L04NRRZK-1wACWGNi_IlXp2rlTz5Pm5PnXgQUeGAPd8Dzj9MyNA)](https://www.star-history.com/?repos=ShenzhenLime%2Fopen_quant&type=date&legend=top-left)
+
+**使用示例视频**：【耗时一个月，我搭建了最适合新手的完整量化框架。】 https://www.bilibili.com/video/BV1skXeBTEq3/?share_source=copy_web&vd_source=268eee2a1463962256f74e1052f0bbc1
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
 ## 📖 写在前面
+
 > **熙熙攘攘，皆为利往，安于传道，能有几何？**
 >
 > 恰逢大一暑假，我看到油管上一个介绍 AI 量化交易的视频，便觉得量化很有意思。**让电脑交易，自己坐享其成，岂不美哉？** 然而初次的尝试却在各种环境配置、接口选择上接连碰壁，无奈之下，只好放弃。
@@ -27,6 +41,20 @@ Requires-Dist: scipy>=1.16.3
 
 ---
 
+## 为什么还需要这个仓库？
+
+你可能会问：**现在 Tushare 有 MCP、Skill 等工具，AI Agent 都能直接下载数据了，为什么还需要这个仓库？**
+
+确实，借助 Tushare MCP，你可以让 AI 直接获取数据。**但数据下载只是量化研究的第一步**——拿到数据后，你还需要：
+
+- **数据存储与管理**：如何高效地存储、更新、查询海量行情数据？
+- **因子计算**：如何基于原始行情计算各类定价因子？如何避免未来数据泄漏？
+- **因子评估**：如何用科学的方法评估因子的 IC、IR、Sharpe？如何做分组回测？
+- **交易模拟**：如何在回测中加入手续费、滑点、板块过滤，更贴近实盘？
+
+这个仓库提供的就是**从数据到研究的完整工具链**——不只是帮你"拿到数据"，而是帮你**规范地做研究**，少踩坑、少走弯路。
+
+---
 
 `src/quant_infra` 是一套基于 **Tushare** 数据源、面向 A 股量化研究的基础设施库，提供从数据入库、因子预处理到因子评估、模拟交易的完整代码。所有行情数据以 **DuckDB** 本地数据库存储，避免对大 CSV 文件的反复读写；核心计算任务通过 **Joblib** 并行加速。
 
@@ -38,24 +66,29 @@ Requires-Dist: scipy>=1.16.3
 
 ```bash
 # 推荐：同时获取示例因子
-git clone --recursive https://github.com/ShenzhenLime/quant.git
+git clone --recursive https://github.com/ShenzhenLime/open_quant.git
 
 # 已克隆但尚未初始化子模块
 git submodule update --init --recursive
 
 # 不需要示例因子
-git clone https://github.com/ShenzhenLime/quant.git
+git clone https://github.com/ShenzhenLime/open_quant.git
 ```
 
 ---
+
 ## 量化真经
+
 - 打板策略不可信，实际交易时，根本不可能以开盘价或前一日收盘价成交。更专业的来说：**没有考虑滑点**。
 - 从定价知识来看，逻辑简单的，通常没有好用的
 - 在大盘股（估值低）和小盘股（业绩好）之间来回轮换的策略很多，聚宽社区里很常见，但本质上是风险的暴露
 
 ---
+
 ## 目前回测不错的因子
+
 - spec_vol 特质波动率
+
 ---
 
 ## 模块总览
@@ -76,10 +109,10 @@ src/quant_infra/
 
 ### `const.py` — 全局常量
 
-| 常量 | 说明 |
-|------|------|
+| 常量                   | 说明                                                      |
+| ---------------------- | --------------------------------------------------------- |
 | `INDEX_NAME_TO_CODE` | 指数名称 → Tushare 代码映射（中证800、中证1000、全市场） |
-| `FREQ_MAP` | 中文频率 → Pandas 频率缩写（日度/周度/月度 → D/W/M） |
+| `FREQ_MAP`           | 中文频率 → Pandas 频率缩写（日度/周度/月度 → D/W/M）    |
 
 ---
 
@@ -87,11 +120,11 @@ src/quant_infra/
 
 以 DuckDB 文件（`Data/data.db`）作为统一数据仓库，封装了三个核心函数：
 
-| 函数 | 说明 |
-|------|------|
-| `init_db()` | 初始化并返回数据库连接，自动创建目录 |
-| `read_sql(query)` | 执行任意 SQL，返回 DataFrame |
-| `write_to_db(df, table_name, save_mode)` | 将 DataFrame 写入指定表，支持 `replace`（覆盖）和 `append`（追加）两种模式 |
+| 函数                                       | 说明                                                                          |
+| ------------------------------------------ | ----------------------------------------------------------------------------- |
+| `init_db()`                              | 初始化并返回数据库连接，自动创建目录                                          |
+| `read_sql(query)`                        | 执行任意 SQL，返回 DataFrame                                                  |
+| `write_to_db(df, table_name, save_mode)` | 将 DataFrame 写入指定表，支持`replace`（覆盖）和 `append`（追加）两种模式 |
 
 ---
 
@@ -109,13 +142,13 @@ src/quant_infra/
 
 #### 数据获取函数
 
-| 函数 | DuckDB 表 / 本地文件 | 说明 |
-|------|------------|------|
-| `get_stock_data_by_date()` | `stock_bar` | 全市场股票日频行情（open/close/pct_chg 等），自动过滤涨跌幅异常（>35%）数据，内置重试机制 |
-| `get_daily_basic()` | `daily_basic` | 每日指标（PB、PE、总市值、换手率等） |
-| `get_index_data(index_code)` | `index_data` | 指定指数的日频行情 |
-| `get_ins(index_code)` | `Data/Metadata/{code}_ins.csv` | 获取指数最近一个月的成分股列表 |
-| `get_trade(start, end)` | `Data/Metadata/trade_day.csv` | 更新交易日历 |
+| 函数                           | DuckDB 表 / 本地文件             | 说明                                                                                      |
+| ------------------------------ | -------------------------------- | ----------------------------------------------------------------------------------------- |
+| `get_stock_data_by_date()`   | `stock_bar`                    | 全市场股票日频行情（open/close/pct_chg 等），自动过滤涨跌幅异常（>35%）数据，内置重试机制 |
+| `get_daily_basic()`          | `daily_basic`                  | 每日指标（PB、PE、总市值、换手率等）                                                      |
+| `get_index_data(index_code)` | `index_data`                   | 指定指数的日频行情                                                                        |
+| `get_ins(index_code)`        | `Data/Metadata/{code}_ins.csv` | 获取指数最近一个月的成分股列表                                                            |
+| `get_trade(start, end)`      | `Data/Metadata/trade_day.csv`  | 更新交易日历                                                                              |
 
 所有日频数据下载均通过 `joblib.Parallel` + `tqdm` 进行**多进程并行**，并内置限流重试（遇到 Tushare 频率限制时自动等待）。
 
@@ -127,12 +160,12 @@ src/quant_infra/
 
 基于全市场日线数据，按交易日并行计算 MKT / SMB / HML / UMD 四个定价因子，结果写入 `pricing_factors` 表。
 
-| 因子 | 计算逻辑 |
-|------|----------|
-| **MKT** | 当日全市场股票平均收益率 |
-| **SMB** | 按**上月末流通市值**排序，后三分之一（小盘）减去前三分之一（大盘）的收益 |
+| 因子          | 计算逻辑                                                                             |
+| ------------- | ------------------------------------------------------------------------------------ |
+| **MKT** | 当日全市场股票平均收益率                                                             |
+| **SMB** | 按**上月末流通市值**排序，后三分之一（小盘）减去前三分之一（大盘）的收益       |
 | **HML** | 按**上月末 PB** 排序，前三分之一（低PB/价值）减去后三分之一（高PB/成长）的收益 |
-| **UMD** | 按**上月累积收益率**排序，后三分之一（强势）减去前三分之一（弱势）的收益 |
+| **UMD** | 按**上月累积收益率**排序，后三分之一（强势）减去前三分之一（弱势）的收益       |
 
 > 所有排序基准均使用**上月末**已知数据，杜绝未来数据泄漏。
 
@@ -154,10 +187,11 @@ src/quant_infra/
 
 因子评估主函数，对因子在**多样本 × 多调仓频率**的所有组合下进行并行回测，输出评价指标。
 
-**样本范围**：中证800 / 中证1000 / 全市场  
+**样本范围**：中证800 / 中证1000 / 全市场
 **调仓频率**：根据因子自身频率自动过滤（如月频因子不会评估日度调仓）
 
 每种组合的评估流程：
+
 1. 若非日频，将日度收益和因子值按周期聚合；
 2. 合并因子与下期收益，计算 **Rank IC**（Spearman 相关系数）；
 3. 按当期因子值分 **10 组**，追踪各组日度持仓收益；
@@ -165,16 +199,15 @@ src/quant_infra/
 
 汇总指标保存至 `factor_mining/{factor_table}/output/summary.csv`，日度多空收益序列写入 DuckDB 的 `{factor_table}_daily_ls` 表。
 
-
 #### `group_plot(sample, freq, line, factor_table, mode)`
 
 从 DuckDB 读取指定样本 & 频率的日度收益序列，绘制**累计净值曲线**并保存为 PNG。
 
-| `mode` 参数 | 读取的 DuckDB 表 | 可选 `line` |
-|-------------|----------------|------------|
-| `'evaluate'`（默认）| `{factor_table}_daily_ls` | `ls_ret` / `long` / `short` |
-| `'trade'` | `{factor_table}_trade_daily_ret` | `long` |
-| `'pathway'` | `{factor_table}_pathway_daily_ls` | `ls_ret` / `long` / `short` |
+| `mode` 参数          | 读取的 DuckDB 表                    | 可选`line`                      |
+| ---------------------- | ----------------------------------- | --------------------------------- |
+| `'evaluate'`（默认） | `{factor_table}_daily_ls`         | `ls_ret` / `long` / `short` |
+| `'trade'`            | `{factor_table}_trade_daily_ret`  | `long`                          |
+| `'pathway'`          | `{factor_table}_pathway_daily_ls` | `ls_ret` / `long` / `short` |
 
 ---
 
@@ -190,18 +223,18 @@ src/quant_infra/
 
 **参数**
 
-| 参数 | 默认值 | 说明 |
-|------|--------|------|
-| `factor_table` | — | 因子表名（DuckDB） |
-| `trade_freq` | — | 调仓频率（如 `'月度'`） |
-| `bench_index` | `'000002.SH'` | 基准指数 |
-| `sample` | `'全市场'` | 回测样本 |
-| `n_top` | `5` | 每期持仓股票数 |
-| `is_ascending` | `False` | 因子排序方向，`False` 表示因子越大越好 |
-| `commission_rate` | `2.5` | 单边手续费（万分比） |
-| `slippage_rate` | `0.1` | 单边滑点（百分比） |
-| `price_max` | `100.0` | 高价股过滤上限（元） |
-| `filter_boards` | `('创业板','科创板','北交所')` | 排除的板块，传空元组不过滤 |
+| 参数                | 默认值                           | 说明                                     |
+| ------------------- | -------------------------------- | ---------------------------------------- |
+| `factor_table`    | —                               | 因子表名（DuckDB）                       |
+| `trade_freq`      | —                               | 调仓频率（如`'月度'`）                 |
+| `bench_index`     | `'000002.SH'`                  | 基准指数                                 |
+| `sample`          | `'全市场'`                     | 回测样本                                 |
+| `n_top`           | `5`                            | 每期持仓股票数                           |
+| `is_ascending`    | `False`                        | 因子排序方向，`False` 表示因子越大越好 |
+| `commission_rate` | `2.5`                          | 单边手续费（万分比）                     |
+| `slippage_rate`   | `0.1`                          | 单边滑点（百分比）                       |
+| `price_max`       | `100.0`                        | 高价股过滤上限（元）                     |
+| `filter_boards`   | `('创业板','科创板','北交所')` | 排除的板块，传空元组不过滤               |
 
 **输出**
 
@@ -249,7 +282,7 @@ Tushare API
 **Python >= 3.12**，依赖见 `pyproject.toml`：
 
 ```
-pandas / numpy / joblib / matplotlib / duckdb / tqdm / tushare / scipy 
+pandas / numpy / joblib / matplotlib / duckdb / tqdm / tushare / scipy / TA-Lib 
 ```
 
 安装：
@@ -263,7 +296,3 @@ pip install -e .
 ```bash
 TS_TOKEN=你的token
 ```
-
-
-
-

@@ -19,9 +19,9 @@ dependencies = [
     "tushare>=1.4.25",
     "scipy>=1.16.3",
     "TA-Lib>=0.6.8",
-    "sklearn>=1.8.0",
-    "torch>=2.11.0",
-    "tensorboard>=2.20.0",
+    "scikit-learn>=1.8.0",
+    "torch>=2.0.0,<=2.8.0",
+    "tensorboard>=2.15.0",
 ]
 
 [tool.setuptools.packages.find]

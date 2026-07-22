@@ -26,8 +26,8 @@ N_SIGMAS = 3
 LIMIT_SLEEP_SECONDS = 15
 
 ## 新的写法更加稳健，即使在不同的目录下运行脚本，也能正确找到数据文件
-# 数据库路径常量
-DB_PATH = str(REPO_ROOT / 'Data' / 'data.db')
+# 数据库路径常量（数据库已迁移至 private_quant）
+DB_PATH = r'C:\file\private_quant\Data\data.db'
 
 # 基础信息存储路径常量
 BASIC_INFO_PATH = str(REPO_ROOT / 'Data' / 'Metadata')

@@ -1,5 +1,9 @@
 # open_quant — 量化基础框架
-[![Star History Chart](https://api.star-history.com/chart?repos=ShenzhenLime/open_quant&type=date&legend=top-left)](https://www.star-history.com/?repos=ShenzhenLime%2Fopen_quant&type=date&legend=top-left)
+
+
+## Star History
+
+[![Star History Chart](https://api.star-history.com/chart?repos=ShenzhenLime/open_quant&type=date&legend=top-left&sealed_token=fUmmcQA60uDDuav0Vj66OzZoJkv4eZeI9QgmDY1LbS7lIHtneyP2qhSSmSFw_c8T6u1L04NRRZK-1wACWGNi_IlXp2rlTz5Pm5PnXgQUeGAPd8Dzj9MyNA)](https://www.star-history.com/?repos=ShenzhenLime%2Fopen_quant&type=date&legend=top-left)
 
 **使用示例视频**：【耗时一个月，我搭建了最适合新手的完整量化框架。】 https://www.bilibili.com/video/BV1skXeBTEq3/?share_source=copy_web&vd_source=268eee2a1463962256f74e1052f0bbc1
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -95,11 +99,11 @@ src/quant_infra/
 
 以 DuckDB 文件（`Data/data.db`）作为统一数据仓库，封装了三个核心函数：
 
-| 函数                                       | 说明                                                                           |
-| ------------------------------------------ | ------------------------------------------------------------------------------ |
-| `init_db()`                              | 初始化并返回数据库连接，自动创建目录                                           |
-| `read_sql(query)`                        | 执行任意 SQL，返回 DataFrame                                                   |
-| `write_to_db(df, table_name, save_mode)` | 将 DataFrame 写入指定表，支持 `replace`（覆盖）和 `append`（追加）两种模式 |
+| 函数                                       | 说明                                                                          |
+| ------------------------------------------ | ----------------------------------------------------------------------------- |
+| `init_db()`                              | 初始化并返回数据库连接，自动创建目录                                          |
+| `read_sql(query)`                        | 执行任意 SQL，返回 DataFrame                                                  |
+| `write_to_db(df, table_name, save_mode)` | 将 DataFrame 写入指定表，支持`replace`（覆盖）和 `append`（追加）两种模式 |
 
 ---
 
@@ -178,7 +182,7 @@ src/quant_infra/
 
 从 DuckDB 读取指定样本 & 频率的日度收益序列，绘制**累计净值曲线**并保存为 PNG。
 
-| `mode` 参数          | 读取的 DuckDB 表                    | 可选 `line`                     |
+| `mode` 参数          | 读取的 DuckDB 表                    | 可选`line`                      |
 | ---------------------- | ----------------------------------- | --------------------------------- |
 | `'evaluate'`（默认） | `{factor_table}_daily_ls`         | `ls_ret` / `long` / `short` |
 | `'trade'`            | `{factor_table}_trade_daily_ret`  | `long`                          |
@@ -201,7 +205,7 @@ src/quant_infra/
 | 参数                | 默认值                           | 说明                                     |
 | ------------------- | -------------------------------- | ---------------------------------------- |
 | `factor_table`    | —                               | 因子表名（DuckDB）                       |
-| `trade_freq`      | —                               | 调仓频率（如 `'月度'`）                |
+| `trade_freq`      | —                               | 调仓频率（如`'月度'`）                 |
 | `bench_index`     | `'000002.SH'`                  | 基准指数                                 |
 | `sample`          | `'全市场'`                     | 回测样本                                 |
 | `n_top`           | `5`                            | 每期持仓股票数                           |
