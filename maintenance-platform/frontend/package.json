@@ -1,0 +1,17 @@
+{
+  "name": "open-quant-maintenance",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1 --port 8071",
+    "build": "vite build",
+    "preview": "vite preview --host 127.0.0.1 --port 8071"
+  },
+  "dependencies": {
+    "@vitejs/plugin-vue": "latest",
+    "vite": "latest",
+    "vue": "latest"
+  },
+  "devDependencies": {}
+}

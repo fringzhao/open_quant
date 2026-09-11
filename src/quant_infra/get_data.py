@@ -306,7 +306,8 @@ def get_industry():
     set_last_fetch_date('sw_industry')
     return df
 
-# if __name__ == "__main__":
+if __name__ == "__main__":
+    get_basic()
     # pro = _get_pro_client()
     # df = pro.index_member_all()
     # df.to_csv("test.csv")

@@ -19,6 +19,13 @@ __pycache__/
 # 虚拟环境
 venv/
 env/
+.venv/
+
+# 本地密钥配置
+.env
+
+# Node.js 依赖
+node_modules/
 
 # IDE
 .idea/
@@ -40,3 +47,5 @@ env/
 *.blg
 # 明确允许 PDF 上传
 !*.pdf
+
+

@@ -3,10 +3,9 @@ import numpy as np
 import os
 from joblib import Parallel, delayed
 from tqdm import tqdm
-from quant_infra import db_utils, get_data
+from quant_infra import db_utils, get_data_ak
 from datetime import datetime, timedelta
 
-#按日期计算定价因子   
 # 定义单日计算函数
 def calc_single_pricing_factors(trade_date, day_df):
     """计算单个交易日的定价因子
@@ -44,6 +43,8 @@ def calc_single_pricing_factors(trade_date, day_df):
         'MKT': mkt_factor,
         **factors_dict  ## 字典解包
     }
+
+# 计算定价因子
 def compute_pricing_factors():
     """
     计算定价因子（MKT、SMB、HML、UMD）
@@ -53,7 +54,7 @@ def compute_pricing_factors():
     3. UMD: 上一月底按当月累积收益排名前三分之一股票组合的收益减去后三分之一股票组合的收益
     4. MKT: 当日所有股票的平均收益率
     """    
-    dates_to_download = get_data.get_dates_todo('pricing_factors')
+    dates_to_download = get_data_ak.get_dates_todo('pricing_factors')
 
     if not dates_to_download:
         print("定价因子数据已是最新")
@@ -87,35 +88,45 @@ def compute_pricing_factors():
     df = df.sort_values(['ts_code', 'trade_date']).reset_index(drop=True)
     # 1. 先计算出每只股票每个月唯一的指标（月度表）
     monthly_df = df.groupby(['ts_code', 'year_month']).agg({
-        'pct_chg': 'sum',
-        'total_mv': 'last',
-        'pb': 'last'
+        'pct_chg': 'sum',       # 涨跌幅
+        'total_mv': 'last',     # 总市值
+        'pb': 'last'            # 市净率
     }).reset_index()
 
-    # 2. monthly_df 已经是原有的df按月聚合的表了，也就是所有股票，每月一行。
+    # 2. 新增加出来三列，保存的是上一月的指标值，shift(1)是将某列下移1行
     # 现在对它进行按股票分组，为每个股票的全部月数据，进行 shift(1) 才是真正的上个月，得到上月末的指标值
-    # 这样计算定价因子时才是真正的用的上月末数据，不会出现未来数据问题
-    # 必须先按股票和时间排序，再按股票分组 shift
     monthly_df = monthly_df.sort_values(['ts_code', 'year_month'])
     monthly_df['month_ret'] = monthly_df.groupby('ts_code')['pct_chg'].shift(1)
     monthly_df['month_mv'] = monthly_df.groupby('ts_code')['total_mv'].shift(1)
     monthly_df['month_pb'] = monthly_df.groupby('ts_code')['pb'].shift(1)
-    ## 注意：这里的 month_ret、month_mv、month_pb 都是上月末的值了，后续计算定价因子时就不会有未来数据问题了
-    ## 也可以用monthly_df['target_month'] = monthly_df['year_month'] + 1，后续用target_month来merge，但直接shift(1)更简单直接
 
     # 3. 将这些“上月值”合并回原有的日线 df
     # 删掉月度表里原本的当月值列（由日数据聚合得到的），避免重名冲突
     monthly_df = monthly_df[['ts_code', 'year_month', 'month_ret', 'month_mv', 'month_pb']]
+    # 通过Merge左连接，将7月的指标数据关联到8月的记录上
     df = pd.merge(df[['ts_code', 'trade_date', 'pct_chg', 'year_month']], monthly_df, on=['ts_code', 'year_month'], how='left')
+    # 清除掉7月份的记录
     df.dropna(subset=['month_ret', 'month_mv', 'month_pb'], inplace=True)
     ## 只保留需要更新的列，防止后续在月内写入重复的列
     df = df[df['trade_date'].isin(dates_to_download)]
     # 5.按交易日分组，并行计算每个交易日的定价因子
     daily_groups = list(df.groupby('trade_date'))
-    
+
+    '''
     results = Parallel(n_jobs=-1)(
         delayed(calc_single_pricing_factors)(trade_date, day_df) 
         for trade_date, day_df in tqdm(daily_groups, desc='计算定价因子')
+    )
+    '''
+
+    results = Parallel(n_jobs=-1, prefer="threads")(
+        # day_df是上面list分组后的每个交易日的DataFrame，trade_date是对应的交易日
+        delayed(calc_single_pricing_factors)(trade_date, day_df)
+        for trade_date, day_df in tqdm(
+            daily_groups,
+            total=len(daily_groups),
+            desc="计算定价因子",
+        )
     )
     
     # 过滤掉None结果
@@ -128,6 +139,7 @@ def compute_pricing_factors():
     db_utils.write_to_db(result_df, 'pricing_factors', save_mode='append')
     return 
 
+# 计算单只股票各个因子的beta系数（对收益率的相关性）
 def calc_single_beta(ts_code, stock_df):
     """计算单只股票的beta系数 - 用全历史数据做回归（日收益率y = 截距 + MKT/SMB/HML/UMD）"""
     try:
@@ -157,6 +169,7 @@ def calc_single_beta(ts_code, stock_df):
         print(f"calc_single_beta 失败: ts_code={ts_code}, error={type(e).__name__}: {e}")
         return None
 
+# 利用回归方程（beta系数和截距），计算预期收益率和残差
 def calc_single_resid(code, stock_df):
     try:
         X_full = np.column_stack([np.ones(len(stock_df)), stock_df[['MKT', 'SMB', 'HML', 'UMD']].to_numpy()])
@@ -165,7 +178,9 @@ def calc_single_resid(code, stock_df):
         # 单只股票在该分组内应只有一套 beta，取首行并转为 1D 向量
         # to_numpy一行时就转为向量，如果是多行就保持二维
         beta_vec = stock_df[['intercept', 'MKT_beta', 'SMB_beta', 'HML_beta', 'UMD_beta']].iloc[0].to_numpy(dtype=float)
+        # 矩阵乘法，点积（使用预期收益率回归方《beta系数和截距》，计算x矩阵中，每天的预期收益率）
         y_hat = X_full @ beta_vec
+        # 计算残差
         stock_df['resid'] = y_full - y_hat
         return stock_df[['ts_code', 'trade_date', 'resid']]
     except Exception as e:
@@ -180,7 +195,7 @@ def calc_resid():
     支持append新数据
     """
     compute_pricing_factors()
-    dates_to_download = get_data.get_dates_todo('stock_resids')
+    dates_to_download = get_data_ak.get_dates_todo('stock_resids')
     if not dates_to_download:
         print("残差数据已是最新")
         return
@@ -251,7 +266,7 @@ def calc_spec_vol():
     特质波动率 = 近20个交易日残差的波动率 = std(residuals)
     结果存入 spec_vol 表，列为 (ts_code, trade_date, factor)
     """
-    dates_to_download = get_data.get_dates_todo('spec_vol')
+    dates_to_download = get_data_ak.get_dates_todo('spec_vol')
     if not dates_to_download:
         print("特质波动率因子数据已是最新")
         return
@@ -294,3 +309,5 @@ def winsorize(series, n=3):
     mean, std = series.mean(), series.std()
     return series.clip(mean - n * std, mean + n * std)
 
+if __name__ == "__main__":
+    compute_pricing_factors()
